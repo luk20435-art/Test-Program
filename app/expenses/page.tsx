@@ -1,18 +1,39 @@
-"use client"
+"use client";
 
-import { useEffect, useState } from "react"
-import { useRouter } from "next/navigation"
-import { useAuth } from "@/lib/auth-context"
-import { Sidebar } from "@/components/sidebar"
-import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { departments, expenseCategories } from "@/lib/mock-data"
-import { useExpenseStore } from "@/lib/expense-store"
-import { Plus, Filter, Search, Edit, Trash2, CheckCircle, XCircle, Clock } from "lucide-react"
-import { ExpenseDialog } from "@/components/expense-dialog"
-import { Input } from "@/components/ui/input"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Badge } from "@/components/ui/badge"
+import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
+import { useAuth } from "@/lib/auth-context";
+import { Sidebar } from "@/components/sidebar";
+import { Button } from "@/components/ui/button";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { departments, expenseCategories } from "@/lib/mock-data";
+import { useExpenseStore } from "@/lib/expense-store";
+import {
+  Plus,
+  Filter,
+  Search,
+  Edit,
+  Trash2,
+  CheckCircle,
+  XCircle,
+  Clock,
+} from "lucide-react";
+import { ExpenseDialog } from "@/components/expense-dialog";
+import { Input } from "@/components/ui/input";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Badge } from "@/components/ui/badge";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -22,30 +43,28 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-} from "@/components/ui/alert-dialog"
-import { useToast } from "@/hooks/use-toast"
+} from "@/components/ui/alert-dialog";
+import { useToast } from "@/hooks/use-toast";
+import { el } from "date-fns/locale";
 
 export default function ExpensesPage() {
-  const router = useRouter()
-  const { user, isLoading } = useAuth()
-  const { expenses, deleteExpense } = useExpenseStore()
-  const { toast } = useToast()
+  const router = useRouter();
+  const { user, isLoading } = useAuth();
+  const { expenses, deleteExpense } = useExpenseStore();
+  const { toast } = useToast();
 
-  const [isDialogOpen, setIsDialogOpen] = useState(false)
-  const [editingExpense, setEditingExpense] = useState<string | null>(null)
-  const [deleteId, setDeleteId] = useState<string | null>(null)
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [editingExpense, setEditingExpense] = useState<string | null>(null);
+  const [deleteId, setDeleteId] = useState<string | null>(null);
 
   // Filters
-  const [searchQuery, setSearchQuery] = useState("")
-  const [filterDepartment, setFilterDepartment] = useState<string>("all")
-  const [filterCategory, setFilterCategory] = useState<string>("all")
-  const [filterStatus, setFilterStatus] = useState<string>("all")
+  const [filteredExpenses, setFilteredExpenses] = useState([]);
 
   useEffect(() => {
     if (!isLoading && !user) {
-      router.push("/login")
+      router.push("/login");
     }
-  }, [user, isLoading, router])
+  }, [user, isLoading, router]);
 
   if (isLoading || !user) {
     return (
@@ -55,39 +74,62 @@ export default function ExpensesPage() {
           <p className="mt-4 text-sm text-muted-foreground">กำลังโหลด...</p>
         </div>
       </div>
-    )
+    );
   }
 
-  // Filter expenses
-  const filteredExpenses = expenses.filter((expense) => {
-    const matchesSearch =
-      expense.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      expense.id.toLowerCase().includes(searchQuery.toLowerCase())
-    const matchesDepartment = filterDepartment === "all" || expense.departmentId === filterDepartment
-    const matchesCategory = filterCategory === "all" || expense.categoryId === filterCategory
-    const matchesStatus = filterStatus === "all" || expense.status === filterStatus
+  useEffect(() => {
+    const fetchBudgets = async () => {
+      try {
+        const res = await fetch("http://localhost:3001/budgets", {
+          method: "GET",
+          headers: { "Content-Type": "application/json" },
+        });
 
-    return matchesSearch && matchesDepartment && matchesCategory && matchesStatus
-  })
+        if (!res) throw new Error("Failed to fetch departments");
 
-  const handleDelete = (id: string) => {
-    deleteExpense(id)
-    setDeleteId(null)
-    toast({
-      title: "ลบสำเร็จ",
-      description: "ลบรายการค่าใช้จ่ายเรียบร้อยแล้ว",
-    })
-  }
+        const data = await res.json();
+        console.log("Departments from server:", data);
+        setFilteredExpenses(data);
+      } catch (err) {
+        console.error("Error fetching departments:", err);
+      }
+    };
+
+    fetchBudgets();
+  }, []);
+
+  const handleDelete = async (id: string) => {
+    const res = await fetch("http://localhost:3001/budgets/" + id, {
+      method: "DELETE",
+      headers: { "Content-Type": "application/json" },
+    });
+    const result = await res.json();
+    if (result.affected > 0) {
+      deleteExpense(id);
+      setDeleteId(null);
+      toast({
+        title: "ลบสำเร็จ",
+        description: "ลบรายการค่าใช้จ่ายเรียบร้อยแล้ว",
+      });
+    } else {
+      toast({
+        title: "เกิดข้อผิดพลาด",
+        description: "ไม่สามารถลบรายการค่าใช้จ่ายได้",
+        variant: "destructive",
+      });
+      return;
+    }
+  };
 
   const handleEdit = (id: string) => {
-    setEditingExpense(id)
-    setIsDialogOpen(true)
-  }
+    setEditingExpense(id);
+    setIsDialogOpen(true);
+  };
 
   const handleCloseDialog = () => {
-    setIsDialogOpen(false)
-    setEditingExpense(null)
-  }
+    setIsDialogOpen(false);
+    setEditingExpense(null);
+  };
 
   const getStatusBadge = (status: string) => {
     switch (status) {
@@ -97,25 +139,25 @@ export default function ExpensesPage() {
             <CheckCircle className="h-3 w-3 mr-1" />
             อนุมัติแล้ว
           </Badge>
-        )
+        );
       case "rejected":
         return (
           <Badge className="bg-red-500/10 text-red-500 hover:bg-red-500/20">
             <XCircle className="h-3 w-3 mr-1" />
             ไม่อนุมัติ
           </Badge>
-        )
+        );
       case "pending":
         return (
           <Badge className="bg-yellow-500/10 text-yellow-500 hover:bg-yellow-500/20">
             <Clock className="h-3 w-3 mr-1" />
             รออนุมัติ
           </Badge>
-        )
+        );
       default:
-        return null
+        return null;
     }
-  }
+  };
 
   return (
     <div className="flex h-screen overflow-hidden">
@@ -125,8 +167,12 @@ export default function ExpensesPage() {
           {/* Header */}
           <div className="flex items-center justify-between">
             <div>
-              <h1 className="text-3xl font-bold tracking-tight">บันทึกค่าใช้จ่าย</h1>
-              <p className="text-muted-foreground mt-2">จัดการรายการค่าใช้จ่ายของแผนกต่างๆ</p>
+              <h1 className="text-3xl font-bold tracking-tight">
+                บันทึกค่าใช้จ่าย
+              </h1>
+              <p className="text-muted-foreground mt-2">
+                จัดการรายการค่าใช้จ่ายของแผนกต่างๆ
+              </p>
             </div>
             <Button onClick={() => setIsDialogOpen(true)}>
               <Plus className="h-4 w-4 mr-2" />
@@ -134,100 +180,24 @@ export default function ExpensesPage() {
             </Button>
           </div>
 
-          {/* Filters */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-lg flex items-center gap-2">
-                <Filter className="h-5 w-5" />
-                กรองข้อมูล
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-                <div className="space-y-2">
-                  <label className="text-sm font-medium">ค้นหา</label>
-                  <div className="relative">
-                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                    <Input
-                      placeholder="ค้นหารายการ..."
-                      value={searchQuery}
-                      onChange={(e) => setSearchQuery(e.target.value)}
-                      className="pl-9"
-                    />
-                  </div>
-                </div>
-
-                <div className="space-y-2">
-                  <label className="text-sm font-medium">แผนก</label>
-                  <Select value={filterDepartment} onValueChange={setFilterDepartment}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="เลือกแผนก" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="all">ทุกแผนก</SelectItem>
-                      {departments.map((dept) => (
-                        <SelectItem key={dept.id} value={dept.id}>
-                          {dept.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                <div className="space-y-2">
-                  <label className="text-sm font-medium">ประเภท</label>
-                  <Select value={filterCategory} onValueChange={setFilterCategory}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="เลือกประเภท" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="all">ทุกประเภท</SelectItem>
-                      {expenseCategories.map((cat) => (
-                        <SelectItem key={cat.id} value={cat.id}>
-                          {cat.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                <div className="space-y-2">
-                  <label className="text-sm font-medium">สถานะ</label>
-                  <Select value={filterStatus} onValueChange={setFilterStatus}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="เลือกสถานะ" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="all">ทุกสถานะ</SelectItem>
-                      <SelectItem value="pending">รออนุมัติ</SelectItem>
-                      <SelectItem value="approved">อนุมัติแล้ว</SelectItem>
-                      <SelectItem value="rejected">ไม่อนุมัติ</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
           {/* Expenses List */}
           <Card>
             <CardHeader>
               <CardTitle>รายการค่าใช้จ่าย</CardTitle>
               <CardDescription>
-                แสดง {filteredExpenses.length} รายการจากทั้งหมด {expenses.length} รายการ
+                แสดงทั้งหมด {filteredExpenses.length} รายการ
               </CardDescription>
             </CardHeader>
             <CardContent>
               <div className="space-y-4">
                 {filteredExpenses.length === 0 ? (
                   <div className="text-center py-12">
-                    <p className="text-muted-foreground">ไม่พบรายการค่าใช้จ่าย</p>
+                    <p className="text-muted-foreground">
+                      ไม่พบรายการค่าใช้จ่าย
+                    </p>
                   </div>
                 ) : (
                   filteredExpenses.map((expense) => {
-                    const department = departments.find((d) => d.id === expense.departmentId)
-                    const category = expenseCategories.find((c) => c.id === expense.categoryId)
-
                     return (
                       <div
                         key={expense.id}
@@ -235,33 +205,47 @@ export default function ExpensesPage() {
                       >
                         <div className="flex-1 space-y-1">
                           <div className="flex items-center gap-3">
-                            <h3 className="font-medium">{expense.description}</h3>
-                            {getStatusBadge(expense.status)}
+                            <h3 className="font-medium">
+                              {expense.description}
+                            </h3>
                           </div>
                           <div className="flex items-center gap-4 text-sm text-muted-foreground">
-                            <span>{department?.name}</span>
+                            <span>{expense?.department?.name}</span>
                             <span>•</span>
-                            <span>{category?.name}</span>
+                            <span>{expense?.category?.name}</span>
                             <span>•</span>
-                            <span>{new Date(expense.date).toLocaleDateString("th-TH")}</span>
+                            <span>
+                              {new Date(expense.date).toLocaleDateString(
+                                "th-TH"
+                              )}
+                            </span>
                           </div>
                         </div>
                         <div className="flex items-center gap-4">
                           <div className="text-right">
-                            <p className="text-lg font-semibold">{expense.amount.toLocaleString()} ฿</p>
-                            <p className="text-xs text-muted-foreground">โดย {expense.createdBy}</p>
+                            <p className="text-lg font-semibold">
+                              {expense.amount.toLocaleString()} ฿
+                            </p>
                           </div>
                           <div className="flex gap-2">
-                            <Button variant="ghost" size="icon" onClick={() => handleEdit(expense.id)}>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => handleEdit(expense.id)}
+                            >
                               <Edit className="h-4 w-4" />
                             </Button>
-                            <Button variant="ghost" size="icon" onClick={() => setDeleteId(expense.id)}>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => setDeleteId(expense.id)}
+                            >
                               <Trash2 className="h-4 w-4" />
                             </Button>
                           </div>
                         </div>
                       </div>
-                    )
+                    );
                   })
                 )}
               </div>
@@ -284,15 +268,20 @@ export default function ExpensesPage() {
           <AlertDialogHeader>
             <AlertDialogTitle>ยืนยันการลบ</AlertDialogTitle>
             <AlertDialogDescription>
-              คุณแน่ใจหรือไม่ที่จะลบรายการค่าใช้จ่ายนี้? การดำเนินการนี้ไม่สามารถย้อนกลับได้
+              คุณแน่ใจหรือไม่ที่จะลบรายการค่าใช้จ่ายนี้?
+              การดำเนินการนี้ไม่สามารถย้อนกลับได้
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>ยกเลิก</AlertDialogCancel>
-            <AlertDialogAction onClick={() => deleteId && handleDelete(deleteId)}>ลบรายการ</AlertDialogAction>
+            <AlertDialogAction
+              onClick={() => deleteId && handleDelete(deleteId)}
+            >
+              ลบรายการ
+            </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
     </div>
-  )
+  );
 }

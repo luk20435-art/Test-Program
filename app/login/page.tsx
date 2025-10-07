@@ -25,7 +25,7 @@ export default function LoginPage() {
     setError("")
     setIsLoading(true)
 
-    const success = await login(email, password)
+    const success = await login(email, password) 
 
     if (success) {
       router.push("/dashboard")

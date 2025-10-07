@@ -11,21 +11,23 @@ const navigation = {
   user: [
     { name: "ภาพรวม", href: "/dashboard", icon: LayoutDashboard },
     { name: "บันทึกค่าใช้จ่าย", href: "/expenses", icon: Receipt },
-    { name: "รายงาน", href: "/reports", icon: FileText },
-  ],
-  analyst: [
-    { name: "ภาพรวม", href: "/dashboard", icon: LayoutDashboard },
-    { name: "บันทึกค่าใช้จ่าย", href: "/expenses", icon: Receipt },
-    { name: "จัดสรรต้นทุน", href: "/cost-allocation", icon: PieChart },
-    { name: "รายงาน", href: "/reports", icon: FileText },
-  ],
-  manager: [
-    { name: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
-    { name: "บันทึกค่าใช้จ่าย", href: "/expenses", icon: Receipt },
-    { name: "จัดสรรต้นทุน", href: "/cost-allocation", icon: PieChart },
+    { name: "จัดสรรต้นทุน", href: "/cost-allocation", icon: PieChart },  
     { name: "รายงาน", href: "/reports", icon: FileText },
     { name: "ตั้งค่า", href: "/settings", icon: Settings },
   ],
+  // analyst: [
+  //   { name: "ภาพรวม", href: "/dashboard", icon: LayoutDashboard },
+  //   { name: "บันทึกค่าใช้จ่าย", href: "/expenses", icon: Receipt },
+  //   { name: "จัดสรรต้นทุน", href: "/cost-allocation", icon: PieChart },
+  //   { name: "รายงาน", href: "/reports", icon: FileText },
+  // ],
+  // manager: [
+  //   { name: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
+  //   { name: "บันทึกค่าใช้จ่าย", href: "/expenses", icon: Receipt },
+  //   { name: "จัดสรรต้นทุน", href: "/cost-allocation", icon: PieChart },
+  //   { name: "รายงาน", href: "/reports", icon: FileText },
+  //   { name: "ตั้งค่า", href: "/settings", icon: Settings },
+  // ],
 }
 
 export function Sidebar() {
